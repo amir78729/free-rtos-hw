@@ -104,16 +104,20 @@
 #ifdef ERTS2_TASKMANAGEMENT
 // you need make your task visible @TODO
 // example 
+TaskHandle_t xHandle;
 void vTask1(void*);
 void vTask2(void*);
 void vTask3(void*);
 void vTask4(void*);
+
 char* getTime() {
     time_t mytime = time(NULL);
     char * time_str = ctime(&mytime);
     time_str[strlen(time_str)-1] = '\0';
     return time_str;
 }
+
+int suspend_counter_for_task_1 = 0;
 
 void vTask1(void *pvParameter) {
     const TickType_t T = pdMS_TO_TICKS(5000);
@@ -124,13 +128,21 @@ void vTask1(void *pvParameter) {
     xLastWakeTime = xTaskGetTickCount();
     while(1) {
         printf("[%s] %s arrived\n", getTime(), pcTaskName);
-        printf("[%s] %s finished\n", getTime(), pcTaskName);
-        vTaskDelay(T);
         vTaskDelayUntil(&xLastWakeTime, D);
+        vTaskDelay(T);
         sleep(0.25);
+        printf("[%s] %s finished\n", getTime(), pcTaskName);
+        suspend_counter_for_task_1++;
+
+        if(suspend_counter_for_task_1 == 8) { // suspending task after 2 seconds (8 × 250 milliseconds)
+            vTaskSuspend(xHandle);
+            printf("[%s] %s suspended\n", getTime(), pcTaskName);
+            suspend_counter_for_task_1 = 0;
+        }
     }
     vTaskDelete(NULL);
 }
+
 void vTask2(void *pvParameter) {
     const TickType_t T = pdMS_TO_TICKS(3000);
     const TickType_t D = pdMS_TO_TICKS(3000);
@@ -140,13 +152,14 @@ void vTask2(void *pvParameter) {
     xLastWakeTime = xTaskGetTickCount();
     while(1) {
         printf("[%s] %s arrived\n", getTime(), pcTaskName);
-        printf("[%s] %s finished\n", getTime(), pcTaskName);
-        vTaskDelay(T);
         vTaskDelayUntil(&xLastWakeTime, D);
+        vTaskDelay(T);
         sleep(0.5);
+        printf("[%s] %s finished\n", getTime(), pcTaskName);
     }
     vTaskDelete(NULL);
 }
+
 void vTask3(void *pvParameter) {
     const TickType_t T = pdMS_TO_TICKS(2000);
     const TickType_t D = pdMS_TO_TICKS(3500);
@@ -156,13 +169,14 @@ void vTask3(void *pvParameter) {
     xLastWakeTime = xTaskGetTickCount();
     while(1) {
         printf("[%s] %s arrived\n", getTime(), pcTaskName);
-        printf("[%s] %s finished\n", getTime(), pcTaskName);
-        vTaskDelay(T);
         vTaskDelayUntil(&xLastWakeTime, D);
+        vTaskDelay(T);
         sleep(0.75);
+        printf("[%s] %s finished\n", getTime(), pcTaskName);
     }
     vTaskDelete(NULL);
 }
+
 void vTask4(void *pvParameter) {
     const TickType_t T = pdMS_TO_TICKS(4000);
     const TickType_t D = pdMS_TO_TICKS(5000);
@@ -172,16 +186,15 @@ void vTask4(void *pvParameter) {
     xLastWakeTime = xTaskGetTickCount();
     while(1) {
         printf("[%s] %s arrived\n", getTime(), pcTaskName);
-        printf("[%s] %s finished\n", getTime(), pcTaskName);
-        vTaskDelay(T);
         vTaskDelayUntil(&xLastWakeTime, D);
+        vTaskDelay(T);
         sleep(1);
+        printf("[%s] %s finished\n", getTime(), pcTaskName);
     }
     vTaskDelete(NULL);
 }
 
 
-TaskHandle_t xxHandle;
 void *data_pkt = NULL;
 #endif
 
@@ -192,13 +205,10 @@ int main ( void )
 #ifdef ERTS2_TASKMANAGEMENT
 	/* Creating Four Task with different Priorities and Delay*/
     // search and find xTaskCreate how it is work   
-    
-    xTaskCreate( vTask1, "task-1", 1000, "task-1", 4, NULL );
+    xTaskCreate( vTask1, "task-1", 1000, "task-1", 4, &xHandle );
     xTaskCreate( vTask2, "task-2", 1000, "task-2", 3, NULL );
     xTaskCreate( vTask3, "task-3", 1000, "task-3", 2, NULL );
     xTaskCreate( vTask4, "task-4", 1000, "task-4", 1, NULL );
-
-
 #endif
 
 	vTaskStartScheduler();
